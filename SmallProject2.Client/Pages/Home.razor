@@ -1,0 +1,92 @@
+﻿@inject IAddTodoTasksService TodoService
+@page "/"
+
+<PageTitle>Home</PageTitle>
+
+<h1>Todo List!</h1>
+
+<style>
+    .centered-text {
+        text-align: center;
+    }
+
+    .wrapper {
+        margin-left: auto; /* Adjust as needed */
+        margin-right: auto; /* Adjust as needed */
+    }
+</style>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 centered-text">
+            <div class="form-group">
+                <label for="taskInput">Add Your Daily Tasks here</label>
+                <div class="wrapper">
+                    <input @bind="newTaskName" type="text" class="form-control" id="taskInput" placeholder="Write the tasks here">
+                    <button class="btn btn-primary" type="button" @onclick="AddTask">Add New task</button>
+                </div>
+
+                @foreach (var todo in TodoList)
+                {
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control" value="@todo.TaskName" >
+                        <div class="input-group-append">
+                            <button class="btn btn-warning" type="button" @onclick="() => StartEdit(todo)">Edit</button>
+                            <button class="btn btn-danger" type="button" @onclick="() => DeleteTask(todo.Id)">Remove</button>
+                            <button class="btn btn-info" type="button">Important!</button>
+                            <button class="btn btn-success" type="button">Completed</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string newTaskName;
+    private List<TodoItem> TodoList = new List<TodoItem>(); // Assuming TodoItem is defined in SmallProject2.Client.Models
+
+    [Inject]
+    private IAddTodoTasksService todoService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TodoList = await todoService.GetTodoItemsAsync();
+    }
+
+    private async Task AddTask()
+    {
+        if (!string.IsNullOrWhiteSpace(newTaskName))
+        {
+            TodoItem newItem = new TodoItem { TaskName = newTaskName };
+            await todoService.AddTodoItemsAsync(newItem);
+            TodoList = await todoService.GetTodoItemsAsync(); // Refresh the todo list after adding the new task
+            newTaskName = string.Empty; // Clear the input field
+        }
+    }
+
+
+
+    private async Task DeleteTask(int id)
+    {
+        await todoService.DeleteTodoItemAsync(id);
+        TodoList.RemoveAll(item => item.Id == id); // Remove the item from the list based on its Id
+    }
+
+    private TodoItem editingTodoItem;
+
+    private void StartEdit(TodoItem item)
+    {
+        editingTodoItem = item;
+    }
+
+    private async Task UpdateTask()
+    {
+        if (editingTodoItem != null)
+        {
+            await todoService.UpdateTodoItemAsync(editingTodoItem);
+            TodoList = await todoService.GetTodoItemsAsync(); // Refresh the todo list after updating the item
+            editingTodoItem = null; // Reset editingTodoItem after updating
+        }
+    }}
